@@ -21,10 +21,10 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarResponsive">
                     <ul class="navbar-nav ms-auto me-4 my-3 my-lg-0">
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#">Real Time ISS</a></li>
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#">Location</a></li>
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#">People On ISS</a></li>
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#">Top Stories</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#real-time">Real Time ISS</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#location">Location</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#people">People On ISS</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#stories">Top Stories</a></li>
                     </ul>
                 </div>
             </div>
@@ -50,6 +50,7 @@
                     <div class="col-xl-12">
 						<h5>People on the ISS</h5>
 						<div id="div-table-people-on-iss"></div>
+						<span class="text-primary">using open-notify-api from </span><a href="http://api.open-notify.org">http://api.open-notify.org</a>
 					</div>
 				</div>
 			</div>
@@ -60,6 +61,7 @@
                     <div class="col-xl-12">
 						<h5>Top Stories / News</h5>
 						<div id="div-top-stories"></div>
+						<span class="text-primary">using news-api from </span><a href="https://newsapi.org/">https://newsapi.org/</a>
 					</div>
 				</div>
 			</div>
@@ -76,7 +78,7 @@
                     </div>
                 </div>
             </div>
-        </section> 
+        </section>  
         <footer class="bg-black text-center py-5">
             <div class="container px-5">
                 <div class="text-white-50 small">
@@ -92,66 +94,226 @@
 		<!-- Core theme JS-->
         <script src="js/scripts.js"></script>
 		<script>
-			var datetime = new Date;
+			var datetime = new Date();
 			var datetime_from = setBeforeOneHour(datetime);
 			var datetime_to = setNextOneHour(datetime);
 			var timestamps_one_hour_before;
 			var timestamps_one_hour_next;
+		
+			// get 10 minutes interval from time_start until time_end //
+			var timestamps = get10MinustesIntervalForLocationOfIss(datetime_from, datetime_to);
+			// send interval to API //
+			getLocationOfIss(timestamps);
+			getPeopleOnIss();
+			getTopStoriesAboutIss();
 			
-			//get 10 minutes from time start and after time start//
-			var timestamps = get10MinutesIntervalForLocationOfISS(datetime_from,datetime_to);
-			//send interval to API//
-			getLOcationOfISS(timestamps);
-			
-			
-			$('#date_time').change function(){
-				'timestamps' = '';
+			$('#date_time').change(function(){
+				timestamps = '';
 				$("#div-table-location-of-iss").empty();
-				var value = $(this).val.replace('T','').replace('Z','');
+				var value = $(this).val().replace('T', ' ').replace('Z', '');
 				datetime_from = setBeforeOneHour(value);
 				datetime_to = setNextOneHour(value);
-				//get 10 minutes from time start and after time start//
+				// get 10 minutes interval from time_start until time_end //
 				timestamps = get10MinustesIntervalForLocationOfIss(datetime_from, datetime_to);
 				// send interval to API //
 				getLocationOfIss(timestamps);
 			});
 			
-			function get10MinutesIntervalForLocationOfISS(datetime_from,datetime_to)
+			function get10MinustesIntervalForLocationOfIss(datetime_from, datetime_to)
 			{
-				var timestamps ='';
+				var timestamps = '';
 				var minutesToAdd = 10;
 				datetime_from = new Date(datetime_from);
 				timestamps_one_hour_before = toTimestamp(datetime_from);
 				timestamps_one_hour_next = toTimestamp(datetime_to);
 				var i = 1;
-				while (timestamps_one_hour_before <= timestamps_one_hour_next)
+				while (timestamps_one_hour_before <= timestamps_one_hour_next) 
 				{
-					if (timestamps_one_hour_before < timestamps_one_hour_next) {
-						timestamps += timestamps_one_hour_before+" ";
-					}else {
-						timestamps += timestamps_one_hour_before+;
+					if(timestamps_one_hour_before < timestamps_one_hour_next) {
+						timestamps += timestamps_one_hour_before+",";
+					} else {
+						timestamps += timestamps_one_hour_before;
 					}
-					datetime_from = new Date(datetime_from.getTime() + minutesToAdd*6000);
+					datetime_from = new Date(datetime_from.getTime() + minutesToAdd*60000);
 					timestamps_one_hour_before = toTimestamp(datetime_from);
 					i++;
 				}
-				
+		
 				return timestamps;
 			}
 			
-			function getLOcationOfISS(timestamps)
+			function getLocationOfIss(timestamps)
 			{
 				$.ajax({
-					type:"GET",
-					dataType:"json",
-					url:"https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps="+timestamps+"&units=kilometers",
+					type: "GET",
+					dataType: "json",
+					url: "https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps="+timestamps+"&units=kilometers",
 					success: function(response){
+						var table = '';
+						if (response.length != 0) {
+							table = '<table class="table table-bordered" width="100%">';
+							table += '<thead>';
+							table += '<tr>';
+							table += '<th width="5%">No.</th>';
+							table += '<th width="">Craft</th>';
+							table += '<th width="">Altitude</th>';
+							table += '<th width="">Latitude / Longitude</th>';
+							table += '<th width="">DateTime</th>';
+							table += '<th width="">TimeZoneId</th>';
+							table += '<th width="">Velocity</th>';
+							table += '<th width="">Visibility</th>';
+							table += '</tr>';
+							table += '</thead>';
+							table += '<tbody>';
+							var count = 1;
+							$.each(response, function (i, item) {
+								table += '<tr>';
+								table += '<td>'+count+'</td>';
+								table += '<td>'+item.name+'</td>';										
+								table += '<td>'+item.altitude+'</td>';										
+								table += '<td>'+item.latitude.toFixed(2)+'/'+item.longitude.toFixed(2)+'</td>';										
+								table += '<td>'+toDateTime(item.timestamp)+'</td>';										
+								table += '<td><span id="span-location-'+count+'"></span></td>';										
+								table += '<td>'+item.velocity+'</td>';										
+								table += '<td>'+item.visibility+'</td>';										
+								table += '</tr>';								
+								getLocationPlaceOfIss(count, item.latitude, item.longitude);
+								count++;
+							});
+							table += '</tbody>'
+							table += '</table>';
+							$("#div-table-location-of-iss").append(table);
+						}
+					},
+					error: function(error){
+						console.log(error);
 					}
-					
-				}
-				
+				});
 			}
-
+			
+			function getLocationPlaceOfIss(id, latitude, longitude)
+			{
+				$.ajax({
+					type: "GET",
+					dataType: "json",
+					url: "https://api.wheretheiss.at/v1/coordinates/"+latitude+","+longitude+"",
+					success: function(response){
+						$("#span-location-"+id).text(response.timezone_id);
+					},
+					error: function(error){
+						console.log(error);
+					}
+				});
+			}
+			
+			/** using new api to get information about iss */
+			function getTopStoriesAboutIss()
+			{
+				$.ajax({
+					type: "GET",
+					dataType: "json",
+					url: "https://newsapi.org/v2/everything?q=iss&language=en&sortBy=publishedAt&apiKey=6d7c68574b694153bcfd188462bb7f6b",
+					success: function(response){
+						console.log(response);
+						var count = 0;
+						var content = '';
+						content += '<div class="row">';
+						$.each(response.articles, function (i, item) {
+							if(count < 5) {
+								content += '<div class="col-sm-3">';
+								content += '<div class="card">';
+								if(item.urlToImage == '' || item.urlToImage == null) {
+								content += '<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQO6JPHK1VkhnXyF-JblYmBWNQqOsJ1p9AL1JmjnQABCNV3g3Vbn3ILskTCCti96pggJfc&usqp=CAU" class="card-img-top" alt="...">';
+								} else {
+								content += '<img src="'+item.urlToImage+'" class="card-img-top" alt="...">';	
+								}
+								content += '<div class="card-body">';
+								content += '<h5 class="card-title">'+item.title+'</h5>';
+								content += '<p class="card-text">'+item.content+'</p>';
+								content += '<a href="#" class="btn btn-link">Read more ...</a>';
+								content += '</div>';
+								content += '</div>';
+								content += '</div>';
+								count++;
+							}
+						});
+						content += '</div>';
+						$("#div-top-stories").append(content);
+					},
+				});	
+			}
+			
+			/** using open-notify to get people on iss */
+			function getPeopleOnIss()
+			{
+				$.ajax({
+					type: "GET",
+					dataType: "json",
+					url: "http://api.open-notify.org/astros.json",
+					success: function(response){
+						var table = '';
+						if (response.length != 0) {
+							table = '<table class="table table-bordered" width="100%">';
+							table += '<thead>';
+							table += '<tr>';
+							table += '<th width="5%">No.</th>';
+							table += '<th width="35%">Craft</th>';
+							table += '<th width="60%">Name</th>';
+							table += '</tr>';
+							table += '</thead>';
+							$.each(response, function (i, item) {
+								if(i == "people") {
+									var count = 1;
+									table += '<tbody>';
+									$.each(item, function (x, data) {
+										table += '<tr>';
+										table += '<td>'+count+'</td>';
+										table += '<td>'+data.craft+'</td>';
+										table += '<td>'+data.name+'</td>';										
+										table += '</tr>';
+										count++;
+									});
+									table += '</tbody>';
+								}
+							});
+							
+							table += '</table>';
+							$("#div-table-people-on-iss").append(table);
+						}
+					},
+					error: function(error){
+						 console.log("Error:");
+						 console.log(error);
+					}
+				});				
+			}
+			
+			function setBeforeOneHour(value)
+			{
+				var date = new Date(value);
+         		date.setHours(date.getHours() - 1);
+				return date;
+			}
+			
+			function setNextOneHour(value)
+			{
+				var date = new Date(value);
+         		date.setHours(date.getHours() + 1);
+				return date;
+			}
+			
+			function toTimestamp(value)
+			{
+				var date = Date.parse(value);
+				return date/1000;
+			}
+			
+			function toDateTime(value)
+			{
+				var date = eval(value*1000);
+				var date = new Date(date);
+				return date.toLocaleString();
+			}
 		</script>
 	</body>	
 <html>
