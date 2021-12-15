@@ -64,6 +64,19 @@
 				</div>
 			</div>
 		</section>
+		<section class="bg-light">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center justify-content-center justify-content-lg-between">
+                    <div class="col-12 col-lg-5">
+                        <h2 class="display-4 lh-1 mb-4">ISS (International Space Station)</h2>
+                        <p class="lead fw-normal text-muted mb-5 mb-lg-0">The ISS orbits 400 km above the Earth at approximately 29,000 km/h. It is the third brightest object in our sky, making it possible to catch a glimpse of the ISS from ground level.</p>
+                    </div>
+                    <div class="col-sm-8 col-md-6">
+                        <div class="px-5 px-sm-0"><img class="img-fluid rounded-circle" src="assets/img/iss.jpg" alt="..." /></div>
+                    </div>
+                </div>
+            </div>
+        </section> 
         <footer class="bg-black text-center py-5">
             <div class="container px-5">
                 <div class="text-white-50 small">
@@ -71,8 +84,75 @@
                 </div>
             </div>
         </footer>
-		
+		<!--Bootstrap core JS!-->
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+		<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+		<!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+		<script>
+			var datetime = new Date;
+			var datetime_from = setBeforeOneHour(datetime);
+			var datetime_to = setNextOneHour(datetime);
+			var timestamps_one_hour_before;
+			var timestamps_one_hour_next;
+			
+			//get 10 minutes from time start and after time start//
+			var timestamps = get10MinutesIntervalForLocationOfISS(datetime_from,datetime_to);
+			//send interval to API//
+			getLOcationOfISS(timestamps);
+			
+			
+			$('#date_time').change function(){
+				'timestamps' = '';
+				$("#div-table-location-of-iss").empty();
+				var value = $(this).val.replace('T','').replace('Z','');
+				datetime_from = setBeforeOneHour(value);
+				datetime_to = setNextOneHour(value);
+				//get 10 minutes from time start and after time start//
+				timestamps = get10MinustesIntervalForLocationOfIss(datetime_from, datetime_to);
+				// send interval to API //
+				getLocationOfIss(timestamps);
+			});
+			
+			function get10MinutesIntervalForLocationOfISS(datetime_from,datetime_to)
+			{
+				var timestamps ='';
+				var minutesToAdd = 10;
+				datetime_from = new Date(datetime_from);
+				timestamps_one_hour_before = toTimestamp(datetime_from);
+				timestamps_one_hour_next = toTimestamp(datetime_to);
+				var i = 1;
+				while (timestamps_one_hour_before <= timestamps_one_hour_next)
+				{
+					if (timestamps_one_hour_before < timestamps_one_hour_next) {
+						timestamps += timestamps_one_hour_before+" ";
+					}else {
+						timestamps += timestamps_one_hour_before+;
+					}
+					datetime_from = new Date(datetime_from.getTime() + minutesToAdd*6000);
+					timestamps_one_hour_before = toTimestamp(datetime_from);
+					i++;
+				}
+				
+				return timestamps;
+			}
+			
+			function getLOcationOfISS(timestamps)
+			{
+				$.ajax({
+					type:"GET",
+					dataType:"json",
+					url:"https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps="+timestamps+"&units=kilometers",
+					success: function(response){
+					}
+					
+				}
+				
+			}
+
+		</script>
 	</body>	
 <html>
 	
